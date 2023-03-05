@@ -109,10 +109,6 @@ get_value :: inline ( file: *string, is_wide: bool ) -> s16
     else 
     {
         return sign_extend( get_next_byte( file ) );
-        // if byte != 0
-        // {
-        //     offset = sign_extend( byte );
-        // }
     }
 }
 
@@ -257,17 +253,19 @@ main :: ()
                     
                     print( "mov %, %\n", get_register_name( reg, is_wide ), data );
                     break mask64;
-                case .MEMORY_TO_ACCUMULATOR;
-                    W_MASK :: 0b00000001;
-                    is_wide := byte & W_MASK != 0;
-                    data := get_value( file, is_wide );
-                    print( "mov %, [%]\n", ifx is_wide then "ax" else "al", data );
-                    break mask64;
+                case .MEMORY_TO_ACCUMULATOR;  #through;
                 case .ACCUMULATOR_TO_MEMORY;
                     W_MASK :: 0b00000001;
                     is_wide := byte & W_MASK != 0;
                     data := get_value( file, is_wide );
-                    print( "mov [%], %\n", data, ifx is_wide then "ax" else "al" );
+                    if op == .MEMORY_TO_ACCUMULATOR
+                    {
+                        print( "mov %, [%]\n", ifx is_wide then "ax" else "al", data );
+                    }
+                    else 
+                    {
+                        print( "mov [%], %\n", data, ifx is_wide then "ax" else "al" );
+                    }
                     break mask64;
                 }
             }
