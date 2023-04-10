@@ -18,12 +18,20 @@ Register_Index :: enum
     CS :: 9;
     SS :: 10;
     DS :: 11;
-    IP :: 12;
+    // IP :: 12;
+}
+
+Register_Flags :: enum_flags 
+{
+    ZERO;
+    SIGN;
 }
 
 Sim_State :: struct 
 {
-    registers: [ 13 ]u16;
+    registers: [ 12 ]u16;
+    flags: Register_Flags;
+    instruction_pointer: s32;
 }
 
 main :: ()
@@ -42,15 +50,15 @@ main :: ()
         
         sim_state: Sim_State;
         
-        offset: u32 = 0;
         file_size: u32 = cast( u32 )file_to_disassemble.count;
-        while offset < file_to_disassemble.count
+        while sim_state.instruction_pointer < file_to_disassemble.count
         {
+            offset := cast( u32 )sim_state.instruction_pointer;
             decoded_instruction: instruction;
             Sim86_Decode8086Instruction( file_size - offset, file_to_disassemble.data + offset, *decoded_instruction );
             if ( decoded_instruction.Op )
             {
-                offset += decoded_instruction.Size;
+                sim_state.instruction_pointer += xx decoded_instruction.Size;
                 print_instruction( decoded_instruction );
                 excecute_instruction( *sim_state, decoded_instruction );
             }
@@ -60,19 +68,23 @@ main :: ()
                 break;
             }
         }
-        
-        default_format := context.print_style.default_format_int;
-        context.print_style.default_format_int.base = 16;
-        context.print_style.default_format_int.minimum_digits = 4;
-        
-        print( "Register state:\n" );
-        for sim_state.registers
-        {
-            print( "%: 0x%\n", cast( Register_Index )it_index, sim_state.registers[ it_index ] );
-        }
-        
-        context.print_style.default_format_int = default_format;
+        print_registers( *sim_state );
     }
+}
+
+print_registers :: ( state: *Sim_State )
+{
+    default_format := context.print_style.default_format_int;
+    context.print_style.default_format_int.base = 16;
+    context.print_style.default_format_int.minimum_digits = 4;
+    
+    print( "Register state:\n" );
+    for state.registers
+    {
+        print( "%: 0x%\n", cast( Register_Index )it_index, state.registers[ it_index ] );
+    }
+    print( "Instruction pointer: %\n", state.instruction_pointer );
+    context.print_style.default_format_int = default_format;
 }
 
 set_register_value :: ( using state: *Sim_State, register: register_access, operand: instruction_operand )
@@ -110,11 +122,51 @@ set_register_value :: ( using state: *Sim_State, register: register_access, oper
     }
 }
 
+get_operands_for_add_sub_cmp :: inline ( using state: *Sim_State, inst: instruction ) -> *u16, u16, u16
+{
+    first_operand := inst.Operands[ 0 ];
+    second_operand := inst.Operands[ 1 ];
+    assert( inst.Operands[ 0 ].Type == operand_type.Operand_Register );
+    r1 := registers.data + first_operand.Register.Index - 1;
+    r2: u16;
+    if second_operand.Type == operand_type.Operand_Register
+    {
+        r2 = registers.data[ second_operand.Register.Index - 1 ];
+    }
+    else 
+    {
+        assert( second_operand.Type == operand_type.Operand_Immediate );
+        r2 = xx second_operand.Immediate.Value;
+    }
+    return r1, <<r1, r2;
+}
+
+set_flags_for_add_sub_cmp :: inline ( using state: *Sim_State, value: u16 )
+{
+    if value == 0
+    {
+        flags |= .ZERO;
+    }
+    else 
+    {
+        flags &= ~.ZERO;
+    }
+    
+    if value & 0x8000
+    {
+        flags |= .SIGN;
+    }
+    else 
+    {
+        flags &= ~.SIGN;
+    }
+}
+
 excecute_instruction :: ( using state: *Sim_State, inst: instruction )
 {
     if inst.Op == 
     {
-    case operation_type.Op_mov;
+    case operation_type.mov;
         if inst.Operands[ 0 ].Type == operand_type.Operand_Register
         {
             set_register_value( state, inst.Operands[ 0 ].Register, inst.Operands[ 1 ] );
@@ -123,9 +175,28 @@ excecute_instruction :: ( using state: *Sim_State, inst: instruction )
         {
             print( "invalid operand type\n" );
         }
+    case operation_type.add;
+        target, v1, v2 := get_operands_for_add_sub_cmp( state, inst );
+        <<target = v1 + v2;
+        set_flags_for_add_sub_cmp( state, <<target );
+    case operation_type.sub;
+        target, v1, v2 := get_operands_for_add_sub_cmp( state, inst );
+        <<target = v1 - v2;
+        set_flags_for_add_sub_cmp( state, <<target );
+    case operation_type.cmp;
+        target, v1, v2 := get_operands_for_add_sub_cmp( state, inst );
+        set_flags_for_add_sub_cmp( state, v1 - v2 );
+    case operation_type.jne;
+        if !( flags & .ZERO )
+        {
+            jump_offset := inst.Operands[ 0 ].Immediate.Value;
+            instruction_pointer += jump_offset;
+        }
     case;
-        print( "can't simulate %", inst.Op );
+        print( "can't simulate %\n", inst.Op );
     }
+    // print( "flags: %\n", flags );
+    // print_registers( state );
 }
 
 print_instruction :: ( i: instruction )
