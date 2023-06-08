@@ -4,41 +4,40 @@
 
 build :: ()
 {
-    w := compiler_create_workspace( "pap" );
+    build_program( "8086/main.jai", "8086-sim" );
+    build_program( "haversine/generator.jai", "haversine-generator", true );
+    
+    set_build_options_dc( .{ do_output = false } );
+}
+
+build_program :: ( main_file: string, exe_name: string, optimized: bool = false )
+{
+    print( "Building: %\n", main_file );
+    w := compiler_create_workspace( exe_name );
     if !w
     {
-        print( "Workspace creation failed.\n" );
+        print( "Workspace % creation failed.\n", exe_name );
         return;
     }
     
     options := get_build_options( w );
-    options.output_executable_name = "8086-sim";
+    options.output_executable_name = exe_name;
     options.output_path = "build";
     
     args := options.compile_time_command_line;
     
-    for arg: args
+    if optimized
     {
-        if arg == "release"
-        {
-            set_optimization_level( *options, 2, 0 );
-        }
+        set_optimization( *options, .OPTIMIZED );
     }
-    
-    files := string.[ "8086/main.jai" ];
     
     set_build_options( options, w );
     
     compiler_begin_intercept( w );
     
-    for file: files
-    {
-        add_build_file( file, w );
-    }
+    add_build_file( main_file, w );
     
     compiler_end_intercept( w );
-    
-    set_build_options_dc( .{ do_output = false } );
 }
 
 #run build();

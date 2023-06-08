@@ -2,3 +2,5 @@
 .build
 build
 /sim86_shared_debug.dll
+*.json
+*.f64
