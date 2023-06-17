@@ -6,6 +6,7 @@ build :: ()
 {
     build_program( "8086/main.jai", "8086-sim" );
     build_program( "haversine/generator.jai", "haversine-generator", true );
+    build_program( "haversine/processor.jai", "haversine-processor", true );
     
     set_build_options_dc( .{ do_output = false } );
 }
