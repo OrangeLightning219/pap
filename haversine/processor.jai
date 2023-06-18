@@ -6,9 +6,13 @@
 #import "Reflection";
 
 #load "haversine.jai";
+#load "platform_metrics.jai";
 
 main :: ()
 {
+    estimate_cpu_timer_frequency( 100 );
+    start, start_ms := get_cpu_time();
+    
     args := get_command_line_arguments();
     
     if args.count < 2
@@ -24,19 +28,22 @@ main :: ()
         answer_file = args[ 2 ];
     }
     
+    startup_end, startup_end_ms := get_cpu_time();
+    
+    read_start, read_start_ms := get_cpu_time();
     file_to_parse, ok := read_entire_file( input_file );
     if !ok
     {
         print( "Error reading input file.\n" );
         return;
     }
+    read_end, read_end_ms := get_cpu_time();
     
+    parse_start, parse_start_ms := get_cpu_time();
     input := parse_json( file_to_parse );
-    // json_pairs := parse_json( file_to_parse );
-    // assert( json_pairs.type == .OBJECT );
-    // pairs, found := table_find( json_pairs.object, "pairs" );
-    // assert( found );
-    // assert( pairs.type == .ARRAY );
+    parse_end, parse_end_ms := get_cpu_time();
+    
+    answer_read_start, answer_read_start_ms := get_cpu_time();
     
     answers: []f64;
     
@@ -49,27 +56,61 @@ main :: ()
         assert( answers.count == input.count );
     }
     
-    total_diff: f64;
+    answer_read_end, answer_read_end_ms := get_cpu_time();
+    
+    sum_start, sum_start_ms := get_cpu_time();
+    
+    sum: f64 = 0.0;
+    answer_sum: f64 = 0.0;
     for input
     {
         using it;
         distance := reference_haversine( x0, y0, x1, y1, 6372.8 );
-        
+        sum += distance;
         if answers
         {
-            diff := abs( distance - answers[ it_index ] );
-            total_diff += diff;
-            if diff != 0.0
-            {
-                print( "Difference on index: % - %\n", it_index, diff );
-            }
+            answer_sum += answers[ it_index ];
         }
     }
     
+    average := sum / cast( f64 )input.count;
+    
+    sum_end, sum_end_ms := get_cpu_time();
+    
+    print_start, print_start_ms := get_cpu_time();
+    
+    print( "Average distance: %\n", average );
     if answers
     {
-        print( "Total diff: %\n", total_diff );
+        print( "Answers diff: %\n", abs( average - ( answer_sum / cast( f64 )input.count ) ) );
     }
+    print_end, print_end_ms := get_cpu_time();
+    
+    end, end_ms := get_cpu_time();
+    
+    context.print_style.default_format_float.trailing_width = 2;
+    context.print_style.default_format_float.zero_removal = .NO;
+    
+    context.print_style.default_format_int.minimum_digits = 15;
+    context.print_style.default_format_int.padding = #char " ";
+    
+    // context.print_style.default_format_float.mode = .SHORTEST;
+    
+    total_ms := cast( f64 )end_ms - start_ms;
+    total := cast( f64 )end - start;
+    print( "Total time: % ms, % cycles - cpu frequency: %\n", total_ms, total, cpu_frequency );
+    startup_time := startup_end - start;
+    print( "    Startup:     % (% %%)\n", startup_time, startup_time / total );
+    read_time := read_end - read_start;
+    print( "    Read:        % (% %%)\n", read_time, read_time / total );
+    parse_time := parse_end - parse_start;
+    print( "    Parse:       % (% %%)\n", parse_time, parse_time / total );
+    answer_read_time := answer_read_end - answer_read_start;
+    print( "    Answer read: % (% %%)\n", answer_read_time, answer_read_time / total );
+    sum_time := sum_end - sum_start;
+    print( "    Sum:         % (% %%)\n", sum_time, sum_time / total );
+    print_time := print_end - print_start;
+    print( "    Print:       % (% %%)\n", print_time, print_time / total );
 }
 
 parse_json :: ( input: string ) -> []Point_Pair
