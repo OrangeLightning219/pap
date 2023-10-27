@@ -1,8 +1,6 @@
 #import "Windows";
 #import "Machine_X64";
 
-cpu_frequency: u64 = 0;
-
 get_os_timer_frequency :: inline () -> u64
 {
     result: s64 = ---;
@@ -17,21 +15,20 @@ get_os_time :: inline () -> u64
     return xx result;
 }
 
-get_cpu_time :: inline () -> u64, u64
+get_cpu_time :: inline () -> u64
 {
-    result := rdtsc();
-    result_ms := cast( u64 )( ( result / cast( f64 )cpu_frequency ) * 1000 );
-    return result, result_ms;
+    return rdtsc();
 }
 
 get_cpu_time_ms :: inline () -> u64
 {
-    assert( cpu_frequency != 0 );
-    return cast( u64 )( ( rdtsc() / cast( f64 )cpu_frequency ) * 1000 );
+    return cast( u64 )( ( rdtsc() / cast( f64 )context.profiler.cpu_frequency ) * 1000 );
 }
 
 estimate_cpu_timer_frequency :: ( milliseconds_to_wait: u64 ) -> u64
 {
+    cpu_frequency: u64 = 0;
+    
     os_frequency := get_os_timer_frequency();
     
     cpu_start := get_cpu_time();
@@ -60,6 +57,5 @@ estimate_cpu_timer_frequency :: ( milliseconds_to_wait: u64 ) -> u64
 
 cpu_time_to_milliseconds :: ( value: u64 ) -> u64
 {
-    assert( cpu_frequency != 0 );
-    return cast( u64 )( ( value / cast( f64 )cpu_frequency ) * 1000 );
+    return cast( u64 )( ( value / cast( f64 )context.profiler.cpu_frequency ) * 1000 );
 }
