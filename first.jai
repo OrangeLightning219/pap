@@ -8,6 +8,8 @@ build :: ()
     // build_program( "haversine/generator.jai", "haversine-generator", true );
     build_program( "haversine/processor.jai", "haversine-processor", true );
     build_program( "haversine/processor.jai", "haversine-processor-debug", false );
+    build_program( "haversine/tests.jai", "tests", true );
+    build_program( "haversine/tests.jai", "tests-debug", false );
     
     set_build_options_dc( .{ do_output = false } );
 }
@@ -30,7 +32,7 @@ build_program :: ( main_file: string, exe_name: string, optimized: bool = false 
     
     if optimized
     {
-        set_optimization( *options, .OPTIMIZED );
+        set_optimization( *options, .VERY_OPTIMIZED );
     }
     
     set_build_options( options, w );

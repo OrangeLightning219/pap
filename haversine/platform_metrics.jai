@@ -59,3 +59,19 @@ cpu_time_to_milliseconds :: ( value: u64 ) -> u64
 {
     return cast( u64 )( ( value / cast( f64 )context.profiler.cpu_frequency ) * 1000 );
 }
+
+cpu_time_to_milliseconds :: ( value: f64 ) -> u64
+{
+    return cpu_time_to_milliseconds( cast( u64 )value );
+}
+
+cpu_time_to_seconds :: ( value: u64 ) -> f64
+{
+    return cast( f64 )cpu_time_to_milliseconds( value ) / 1000.0;
+}
+
+cpu_time_to_seconds :: ( value: f64 ) -> f64
+{
+    return cpu_time_to_seconds( cast( u64 )value );
+}
+

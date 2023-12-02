@@ -7,6 +7,8 @@ Profiler :: struct
     current_parent: *Profile_Point;
     
     cpu_frequency: u64;
+    
+    print_results := true;
 }
 
 #add_context profiler: Profiler;
@@ -17,6 +19,7 @@ Profile_Point :: struct
     
     own_time: u64; // without children
     total_time: u64; // with children
+    bytes_processed: u64;
     
     hit_count: u64;
 }
@@ -40,18 +43,30 @@ end_profiling :: ()
     
     end_time = get_cpu_time();
     
-    total_time := end_time - start_time;
-    print( "Total time: % (%ms)\n", total_time, cpu_time_to_milliseconds( total_time ) );
-    for points
+    if profiler.print_results
     {
-        percent := ( cast( f64 )it.own_time / cast( f64 )total_time ) * 100;
-        print( "  %[%]: own: % (%%%) [%ms]", it.name, it.hit_count, it.own_time, percent, cpu_time_to_milliseconds( it.own_time ) );
-        if it.total_time != it.own_time
+        total_time := end_time - start_time;
+        print( "Total time: % (%ms)\n", total_time, cpu_time_to_milliseconds( total_time ) );
+        for points
         {
-            children_percent := ( cast( f64 )it.total_time / cast( f64 )total_time ) * 100;
-            print( " %%% with children", children_percent );
+            percent := ( cast( f64 )it.own_time / cast( f64 )total_time ) * 100;
+            print( "  %[%]: own: % (%%%) [%ms]", it.name, it.hit_count, it.own_time, percent, cpu_time_to_milliseconds( it.own_time ) );
+            if it.total_time != it.own_time
+            {
+                children_percent := ( cast( f64 )it.total_time / cast( f64 )total_time ) * 100;
+                print( " %%% with children", children_percent );
+            }
+            
+            if it.bytes_processed != 0
+            {
+                megabytes := cast( f64 )it.bytes_processed / ( 1024.0 * 1024.0 );
+                gigabytes := megabytes / 1024;
+                gigabytes_per_second := gigabytes / cpu_time_to_seconds( it.total_time );
+                print( ", processed: %mb, %s/gb", megabytes, gigabytes_per_second );
+            }
+            
+            print( "\n" );
         }
-        print( "\n" );
     }
 }
 
@@ -59,7 +74,7 @@ end_profiling :: ()
 {
     PROFILE_FUNCTION :: PROFILE_SCOPE;
     
-    PROFILE_SCOPE :: ( name := "" ) #expand 
+    PROFILE_SCOPE :: ( name := "", byte_count := 0 ) #expand 
     {
         profiler := *context.profiler;
         
@@ -80,6 +95,7 @@ end_profiling :: ()
             time := get_cpu_time() - start_time;
             point.own_time += time;
             point.total_time = old_total_time + time;
+            point.bytes_processed += xx byte_count;
             if parent
             {
                 parent.own_time -= time;

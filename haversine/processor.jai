@@ -30,11 +30,19 @@ main :: ()
         answer_file = args[ 2 ];
     }
     
-    file_to_parse, ok := read_entire_file( input_file );
-    if !ok
+    file_to_parse: string;
     {
-        print( "Error reading input file.\n" );
-        return;
+        file := file_open( input_file );
+        file_size, ok := file_length( file );
+        assert( ok );
+        file_close( *file );
+        PROFILE_SCOPE( "Read entire file", file_size );
+        file_to_parse, ok = read_entire_file( input_file );
+        if !ok
+        {
+            print( "Error reading input file.\n" );
+            return;
+        }
     }
     
     input := parse_json( file_to_parse );
@@ -53,10 +61,10 @@ main :: ()
     sum: f64 = 0.0;
     answer_sum: f64 = 0.0;
     {
-        PROFILE_SCOPE( "Haversine" );
+        print( "processing: %, size: %\n", input.count, input.count * size_of( Point_Pair ) );
+        PROFILE_SCOPE( "Haversine", input.count * size_of( Point_Pair ) );
         for input
         {
-            PROFILE_SCOPE( "haversine loop" );
             using it;
             distance := reference_haversine( x0, y0, x1, y1, 6372.8 );
             sum += distance;
