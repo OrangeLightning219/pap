@@ -31,6 +31,18 @@ nop_1x3_all_bytes_asm :: ( count: u64 ) #foreign loop_lib;
 nop_3x1_all_bytes_asm :: ( count: u64 ) #foreign loop_lib;
 nop_1x9_all_bytes_asm :: ( count: u64 ) #foreign loop_lib;
 
+read_unroll_lib :: #library,no_dll "../build/read_unroll";
+read_x1_asm :: ( count: u64, data: *u8 ) #foreign read_unroll_lib;
+read_x2_asm :: ( count: u64, data: *u8 ) #foreign read_unroll_lib;
+read_x3_asm :: ( count: u64, data: *u8 ) #foreign read_unroll_lib;
+read_x4_asm :: ( count: u64, data: *u8 ) #foreign read_unroll_lib;
+
+write_unroll_lib :: #library,no_dll "../build/write_unroll";
+write_x1_asm :: ( count: u64, data: *u8 ) #foreign write_unroll_lib;
+write_x2_asm :: ( count: u64, data: *u8 ) #foreign write_unroll_lib;
+write_x3_asm :: ( count: u64, data: *u8 ) #foreign write_unroll_lib;
+write_x4_asm :: ( count: u64, data: *u8 ) #foreign write_unroll_lib;
+
 #insert ->string { 
     template :: #string END
 % :: ( tester: *Repetition_Tester, buffer: string )
@@ -67,6 +79,26 @@ END;
     print_to_builder( *builder, template, "nop_3x1_all_bytes", nop_3x1_all_bytes );
     print_to_builder( *builder, template, "nop_1x9_all_bytes", nop_1x9_all_bytes );
     
+    read_x1 := "read_x1_asm(xx buffer.count, buffer.data);";
+    read_x2 := "read_x2_asm(xx buffer.count, buffer.data);";
+    read_x3 := "read_x3_asm(xx buffer.count, buffer.data);";
+    read_x4 := "read_x4_asm(xx buffer.count, buffer.data);";
+    
+    print_to_builder( *builder, template, "read_x1", read_x1 );
+    print_to_builder( *builder, template, "read_x2", read_x2 );
+    print_to_builder( *builder, template, "read_x3", read_x3 );
+    print_to_builder( *builder, template, "read_x4", read_x4 );
+    
+    write_x1 := "write_x1_asm(xx buffer.count, buffer.data);";
+    write_x2 := "write_x2_asm(xx buffer.count, buffer.data);";
+    write_x3 := "write_x3_asm(xx buffer.count, buffer.data);";
+    write_x4 := "write_x4_asm(xx buffer.count, buffer.data);";
+    
+    print_to_builder( *builder, template, "write_x1", write_x1 );
+    print_to_builder( *builder, template, "write_x2", write_x2 );
+    print_to_builder( *builder, template, "write_x3", write_x3 );
+    print_to_builder( *builder, template, "write_x4", write_x4 );
+    
     return builder_to_string( *builder );
 }
 
@@ -77,13 +109,23 @@ Test_Function :: struct
 }
 
 functions_to_test :: Test_Function.[ 
-                                     .{ "write_to_all_bytes", write_to_all_bytes }, 
-                                     .{ "mov_all_bytes", mov_all_bytes }, 
-                                     .{ "cmp_all_bytes", cmp_all_bytes }, 
-                                     .{ "dec_all_bytes", dec_all_bytes }, 
-                                     .{ "nop_1x3_all_bytes", nop_1x3_all_bytes }, 
-                                     .{ "nop_3x1_all_bytes", nop_3x1_all_bytes }, 
-                                     .{ "nop_1x9_all_bytes", nop_1x9_all_bytes }, 
+                                     // .{ "write_to_all_bytes", write_to_all_bytes }, 
+                                     // .{ "mov_all_bytes", mov_all_bytes }, 
+                                     // .{ "cmp_all_bytes", cmp_all_bytes }, 
+                                     // .{ "dec_all_bytes", dec_all_bytes }, 
+                                     // .{ "nop_1x3_all_bytes", nop_1x3_all_bytes }, 
+                                     // .{ "nop_3x1_all_bytes", nop_3x1_all_bytes }, 
+                                     // .{ "nop_1x9_all_bytes", nop_1x9_all_bytes }, 
+                                     
+                                     // .{ "read_x1", read_x1 }, 
+                                     // .{ "read_x2", read_x2 }, 
+                                     // .{ "read_x3", read_x3 }, 
+                                     // .{ "read_x4", read_x4 }, 
+                                     
+                                     .{ "write_x1", write_x1 }, 
+                                     .{ "write_x2", write_x2 }, 
+                                     .{ "write_x3", write_x3 }, 
+                                     .{ "write_x4", write_x4 }, 
                                       ];
 main :: ()
 {

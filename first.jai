@@ -2,6 +2,9 @@
 #import "Basic";
 #import "Compiler";
 
+// nasm -f win64 -o .\build\read_unroll.obj .\haversine\read_unroll.asm
+// lib read_unroll.obj
+
 build :: ()
 {
     // build_program( "8086/main.jai", "8086-sim" );
